@@ -18,18 +18,18 @@ public class Polynomial {
         }
     }
 
-    private List<Term> terms;
+    private final List<Term> terms;
 
     public Polynomial(String polynomial) {
         this.polynomial = polynomial;
         terms = extractTerms(polynomial);
-        Collections.sort(terms, Comparator.comparingInt(t -> -t.exponent));
+        terms.sort(Comparator.comparingInt(t -> -t.exponent));
         fillMissingTerms();
     }
 
     private List<Term> extractTerms(String polynomial) {
         List<Term> terms = new ArrayList<>();
-        Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*)?x(\\^(\\-?\\d+))?|([-+]?\\s*\\d+)");
+        Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+)");
         Matcher matcher = termPattern.matcher(polynomial);
 
         while (matcher.find()) {
@@ -37,8 +37,8 @@ public class Polynomial {
             String expStr = matcher.group(3);
             String constantStr = matcher.group(4);
 
-            double coef = 1;
-            int exp = 1;
+            double coef;
+            int exp;
 
             if (constantStr != null) {
                 coef = Double.parseDouble(constantStr.trim());
@@ -77,7 +77,7 @@ public class Polynomial {
                 }
             }
         }
-        // i have to check the last term because there could be lower terms missing.
+        // I have to check the last term because there could be lower terms missing.
         // for example: 3x^2 is the last one then x^1 and x^0 are missing
         if (terms.get(terms.size() - 1).exponent > 0) {
             for (int i = terms.get(terms.size() - 1).exponent - 1; i >= 0; i--) {
