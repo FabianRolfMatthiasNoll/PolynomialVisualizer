@@ -40,11 +40,11 @@ public class Polynomial {
             double coef;
             int exp;
 
-            if (constantStr != null) {
+            if (!constantStr.isEmpty()) {
                 coef = Double.parseDouble(constantStr.trim());
                 exp = 0;
             } else {
-                if (coefStr == null) {
+                if (coefStr.isEmpty()) {
                     coef = 1;
                 } else if (coefStr.trim().equals("+")) {
                     coef = 1;
@@ -120,11 +120,35 @@ public class Polynomial {
         double prevSlope = (evaluate(start + step) - evaluate(start)) / step;
         for (double x = start + 2*step; x <= end; x += step) {
             double slope = (evaluate(x) - evaluate(x - step)) / step;
-            if (prevSlope * slope <= 0) { // changing slope direction
-                extremes.add(x - step); // estimating extreme point
+            if (prevSlope * slope <= 0) {
+                extremes.add(x - step);
             }
             prevSlope = slope;
         }
         return extremes;
+    }
+    // TODO: Fix Constant derive
+    public void derive() {
+        for (Term term : terms) {
+            term.coefficient *= term.exponent;
+            term.exponent -= 1;
+        }
+
+        terms.removeIf(term -> term.exponent < 0);
+
+        StringBuilder sb = new StringBuilder();
+        for (Term term : terms) {
+            if (term.coefficient != 0) {
+                if (term.coefficient > 0 && sb.length() > 0) {
+                    sb.append("+");
+                }
+                if (term.exponent > 0) {
+                    sb.append(String.format("%.2fx^%d", term.coefficient, term.exponent));
+                } else {
+                    sb.append(String.format("%.2f", term.coefficient));
+                }
+            }
+        }
+        polynomial = sb.toString();
     }
 }

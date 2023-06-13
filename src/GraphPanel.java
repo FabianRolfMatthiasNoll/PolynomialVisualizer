@@ -67,6 +67,15 @@ public class GraphPanel extends JPanel {
             repaint();
         }
     }
+
+    private class DeriveActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            polynomial.derive();
+            repaint();
+        }
+    }
+
     public GraphPanel() {
         polynomial = new Polynomial("3x^3-4x^1+2");
         zeroPoints = polynomial.getZeroPoints();
@@ -76,9 +85,10 @@ public class GraphPanel extends JPanel {
         addMouseListener(new PanListener());
         addMouseMotionListener(new PanMotionListener());
 
+        createResetButton();
         createFunctionField();
         createCalculateButton();
-        createResetButton();
+        createDeriveButton();
     }
 
     private void createFunctionField() {
@@ -96,6 +106,11 @@ public class GraphPanel extends JPanel {
         resetButton = new JButton("Reset");
         resetButton.addActionListener(new ResetActionListener());
         add(resetButton);
+    }
+    private void createDeriveButton() {
+        JButton deriveButton = new JButton("Derive");
+        deriveButton.addActionListener(new DeriveActionListener());
+        add(deriveButton);
     }
 
     @Override
@@ -198,8 +213,8 @@ public class GraphPanel extends JPanel {
     }
 
     private void drawInformationWindow(Graphics2D g2d) {
-        int boxX = getWidth() - 200;
-        int boxY = 10;
+        int boxX = getWidth() - 190;
+        int boxY = getHeight() - 90;
         int boxWidth = 180;
         int boxHeight = 80;
 
