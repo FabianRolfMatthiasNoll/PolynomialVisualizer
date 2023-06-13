@@ -3,6 +3,11 @@ import java.util.regex.*;
 
 public class Polynomial {
 
+    public String polynomial;
+    private static final double DEFAULT_START_X = -100.0;
+    private static final double DEFAULT_END_X = 100.0;
+    private static final double DEFAULT_STEP = 0.01;
+
     private static class Term {
         double coefficient;
         int exponent;
@@ -16,6 +21,7 @@ public class Polynomial {
     private List<Term> terms;
 
     public Polynomial(String polynomial) {
+        this.polynomial = polynomial;
         terms = extractTerms(polynomial);
         Collections.sort(terms, Comparator.comparingInt(t -> -t.exponent));
         fillMissingTerms();
@@ -86,5 +92,39 @@ public class Polynomial {
             result = result * x + terms.get(i).coefficient;
         }
         return result;
+    }
+
+    public List<Double> getZeroPoints() {
+        return getZeroPoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
+    }
+
+    public List<Double> getExtremePoints() {
+        return getExtremePoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
+    }
+
+    public List<Double> getZeroPoints(double start, double end, double step) {
+        List<Double> zeros = new ArrayList<>();
+        double prevY = evaluate(start);
+        for (double x = start + step; x <= end; x += step) {
+            double y = evaluate(x);
+            if (prevY * y <= 0) {
+                zeros.add(x - step/2);
+            }
+            prevY = y;
+        }
+        return zeros;
+    }
+
+    public List<Double> getExtremePoints(double start, double end, double step) {
+        List<Double> extremes = new ArrayList<>();
+        double prevSlope = (evaluate(start + step) - evaluate(start)) / step;
+        for (double x = start + 2*step; x <= end; x += step) {
+            double slope = (evaluate(x) - evaluate(x - step)) / step;
+            if (prevSlope * slope <= 0) { // changing slope direction
+                extremes.add(x - step); // estimating extreme point
+            }
+            prevSlope = slope;
+        }
+        return extremes;
     }
 }

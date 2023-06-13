@@ -2,6 +2,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.GeneralPath;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class GraphPanel extends JPanel {
     private double zoom = 1.0;
@@ -15,9 +18,13 @@ public class GraphPanel extends JPanel {
     public JButton resetButton;
     private JButton calculateButton;
     private Polynomial polynomial;
+    private List<Double> zeroPoints;
+    private List<Double> extremePoints;
 
     public GraphPanel() {
         polynomial = new Polynomial("3x^3-4x^1+2"); // Just a default function because why not
+        zeroPoints = polynomial.getZeroPoints();
+        extremePoints = polynomial.getExtremePoints();
         addMouseWheelListener(new MouseAdapter() {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
@@ -62,6 +69,8 @@ public class GraphPanel extends JPanel {
         calculateButton.addActionListener(e -> {
             String function = functionField.getText();
             polynomial = new Polynomial(function);
+            zeroPoints = polynomial.getZeroPoints();
+            extremePoints = polynomial.getExtremePoints();
             repaint();
         });
         add(calculateButton);
@@ -154,5 +163,23 @@ public class GraphPanel extends JPanel {
             int textOffset = (y < 0) ? g2d.getFontMetrics().getAscent() + 2 : -2;
             g2d.drawString(label, zeroX + 2, screenY + textOffset);
         }
+
+        // Getting ZeroPoints / ExtremePoints and drawing a Information Window
+        int boxX = getWidth() - 200;
+        int boxY = 10;
+        int boxWidth = 180;
+        int boxHeight = 80;
+
+        g2d.setColor(new Color(100, 100, 100, 200));
+        g2d.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+        String function = "Function: " + polynomial.polynomial;
+        String zeroPointsStr = "Zero Points: " + zeroPoints.stream().map(z -> String.format("%.2f", z)).collect(Collectors.joining(", "));
+        String extremePointsStr = "Extreme Points: " + extremePoints.stream().map(e -> String.format("%.2f", e)).collect(Collectors.joining(", "));
+        g2d.drawString(function, boxX + 10, boxY + 20);
+        g2d.drawString(zeroPointsStr, boxX + 10, boxY + 40);
+        g2d.drawString(extremePointsStr, boxX + 10, boxY + 60);
     }
 }
