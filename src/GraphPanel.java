@@ -10,7 +10,7 @@ public class GraphPanel extends JPanel {
     private double offsetX = 0;
     private double offsetY = 0;
     private double scale = 50.0;
-
+    private final Color backgroundColor = new Color(0.13f, 0.16f, 0.2f);
     private Point lastMousePosition;
     private JTextField functionField;
     public JButton resetButton;
@@ -136,7 +136,7 @@ public class GraphPanel extends JPanel {
     }
 
     private void clearBackground(Graphics2D g2d, int width, int height) {
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(backgroundColor);
         g2d.fillRect(0, 0, width, height);
     }
 
@@ -157,6 +157,7 @@ public class GraphPanel extends JPanel {
 
     private void drawAxes(Graphics2D g2d, int width, int height, int zeroX, int zeroY) {
         g2d.setColor(Color.WHITE);
+        g2d.setStroke(new BasicStroke(0.5f));
         g2d.drawLine(0, zeroY, width, zeroY); // X axis
         g2d.drawLine(zeroX, 0, zeroX, height); // Y axis
     }
@@ -187,12 +188,14 @@ public class GraphPanel extends JPanel {
                 path.lineTo(screenX, screenY);
             }
         }
-        g2d.setColor(Color.RED);
+        g2d.setStroke(new BasicStroke(1.5f));
+        g2d.setColor(Color.WHITE);
         g2d.draw(path);
     }
 
     private void drawLabelsAndScales(Graphics2D g2d, int width, int height, int zeroX, int zeroY, double step) {
         g2d.setColor(Color.WHITE);
+        g2d.setStroke(new BasicStroke(0.5f));
         g2d.setFont(new Font("Arial", Font.PLAIN, 10));
         int tickSize = 3;
         for (double x = step * Math.floor((-offsetX - width / (2.0 * scale)) / step); x <= -offsetX + width / (2.0 * scale); x += step) {
