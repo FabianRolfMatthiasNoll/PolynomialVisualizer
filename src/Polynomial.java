@@ -29,7 +29,7 @@ public class Polynomial {
 
     private List<Term> extractTerms(String polynomial) {
         List<Term> terms = new ArrayList<>();
-        Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+)");
+        Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*(?:/\\d+)*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+(/\\d+)?)");
         Matcher matcher = termPattern.matcher(polynomial);
 
         while (matcher.find()) {
@@ -40,18 +40,18 @@ public class Polynomial {
             double coef;
             int exp;
 
-            if (!constantStr.isEmpty()) {
-                coef = Double.parseDouble(constantStr.trim());
+            if (constantStr != null && !constantStr.isEmpty()) {
+                coef = parseFraction(constantStr.trim());
                 exp = 0;
             } else {
-                if (coefStr.isEmpty()) {
+                if (coefStr == null || coefStr.isEmpty()) {
                     coef = 1;
                 } else if (coefStr.trim().equals("+")) {
                     coef = 1;
                 } else if (coefStr.trim().equals("-")) {
                     coef = -1;
                 } else {
-                    coef = Double.parseDouble(coefStr.trim());
+                    coef = parseFraction(coefStr.trim());
                 }
 
                 if (expStr == null) {
@@ -65,6 +65,15 @@ public class Polynomial {
         }
 
         return terms;
+    }
+
+    private double parseFraction(String input) {
+        if (input.contains("/")) {
+            String[] fractionParts = input.split("/");
+            return Double.parseDouble(fractionParts[0]) / Double.parseDouble(fractionParts[1]);
+        } else {
+            return Double.parseDouble(input);
+        }
     }
 
     private void fillMissingTerms() {
