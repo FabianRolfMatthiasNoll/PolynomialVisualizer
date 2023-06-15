@@ -70,7 +70,7 @@ public class GraphPanel extends JPanel {
     private class DeriveActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            //polynomial.derive();
+            polynomial.derive();
             repaint();
         }
     }

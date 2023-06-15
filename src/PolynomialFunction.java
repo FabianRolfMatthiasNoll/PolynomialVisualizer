@@ -16,8 +16,6 @@ public class PolynomialFunction implements ParametricFunction {
         Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*(?:/\\d+)*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+(/\\d+)?)");
         Matcher matcher = termPattern.matcher(polynomial);
 
-        int maxExponent = 0;
-
         while (matcher.find()) {
             String coefStr = matcher.group(1);
             String expStr = matcher.group(3);
@@ -30,33 +28,24 @@ public class PolynomialFunction implements ParametricFunction {
                 coef = parseFraction(constantStr.trim());
                 exp = 0;
             } else {
-                if (coefStr == null || coefStr.isEmpty()) {
-                    coef = 1;
-                } else if (coefStr.trim().equals("+")) {
-                    coef = 1;
-                } else if (coefStr.trim().equals("-")) {
-                    coef = -1;
-                } else {
-                    coef = parseFraction(coefStr.trim());
+                coef = 1; // default coefficient
+                if (coefStr != null && !coefStr.isEmpty()) {
+                    if (coefStr.trim().equals("+") || coefStr.trim().equals("-")) {
+                        coef = coefStr.trim().equals("+") ? 1 : -1;
+                    } else {
+                        coef = parseFraction(coefStr.trim());
+                    }
                 }
 
-                if (expStr == null) {
-                    exp = 1;
-                } else {
-                    exp = Integer.parseInt(expStr);
-                }
+                exp = (expStr == null) ? 1 : Integer.parseInt(expStr);
             }
 
-            maxExponent = Math.max(maxExponent, exp);
-
-            // Resize the array if necessary
             if (exp >= this.coefficients.length) {
                 this.coefficients = Arrays.copyOf(this.coefficients, exp + 1);
             }
 
             this.coefficients[exp] = coef;
         }
-        this.coefficients = reverseArray(this.coefficients);
     }
 
     private double parseFraction(String input) {
@@ -66,21 +55,6 @@ public class PolynomialFunction implements ParametricFunction {
         } else {
             return Double.parseDouble(input);
         }
-    }
-
-    public double[] reverseArray(double[] array) {
-        int start = 0;
-        int end = array.length - 1;
-
-        while (start < end) {
-            double temp = array[start];
-            array[start] = array[end];
-            array[end] = temp;
-
-            start++;
-            end--;
-        }
-        return array;
     }
 
     public int degree() {
@@ -97,10 +71,41 @@ public class PolynomialFunction implements ParametricFunction {
     @Override
     public Vector2D evaluate(double t) {
         // Horner scheme
-        double result = this.coefficients[0];
-        for (int i = 1; i < this.coefficients.length; i++) {
+        double result = 0;
+        for (int i = this.coefficients.length - 1; i >= 0; i--) {
             result = result * t + this.coefficients[i];
         }
         return new Vector2D(t, result);
+    }
+
+    public void derive() {
+        if (coefficients == null || coefficients.length == 0) {
+            return;
+        }
+
+        // Update coefficients and decrease exponent
+        for (int i = 1; i < coefficients.length; i++) {
+            coefficients[i - 1] = i * coefficients[i];
+        }
+
+        // Remove last element (it will always be 0 after derivative)
+        coefficients[coefficients.length - 1] = 0;
+
+        // Construct the polynomial string
+        StringBuilder sb = new StringBuilder();
+        for (int i = coefficients.length - 1; i >= 0; i--) {
+            double coefficient = coefficients[i];
+            if (coefficient != 0) {
+                if (coefficient > 0 && sb.length() > 0) {
+                    sb.append("+");
+                }
+                if (i > 0) {
+                    sb.append(String.format("%.2fx^%d", coefficient, i));
+                } else {
+                    sb.append(String.format("%.2f", coefficient));
+                }
+            }
+        }
+        polynomialFunction =  sb.toString();
     }
 }
