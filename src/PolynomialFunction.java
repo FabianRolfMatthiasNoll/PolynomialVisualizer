@@ -1,10 +1,14 @@
 import java.util.regex.*;
 import java.util.Arrays;
+import java.util.*;
 
 public class PolynomialFunction implements ParametricFunction {
 
     private double[] coefficients;
     public String polynomialFunction;
+    private static final double DEFAULT_START_X = -100.0;
+    private static final double DEFAULT_END_X = 100.0;
+    private static final double DEFAULT_STEP = 0.01;
 
     public PolynomialFunction(String polynomialString) {
         this.coefficients = new double[]{0};
@@ -28,7 +32,7 @@ public class PolynomialFunction implements ParametricFunction {
                 coef = parseFraction(constantStr.trim());
                 exp = 0;
             } else {
-                coef = 1; // default coefficient
+                coef = 1;
                 if (coefStr != null && !coefStr.isEmpty()) {
                     if (coefStr.trim().equals("+") || coefStr.trim().equals("-")) {
                         coef = coefStr.trim().equals("+") ? 1 : -1;
@@ -83,15 +87,12 @@ public class PolynomialFunction implements ParametricFunction {
             return;
         }
 
-        // Update coefficients and decrease exponent
         for (int i = 1; i < coefficients.length; i++) {
             coefficients[i - 1] = i * coefficients[i];
         }
 
-        // Remove last element (it will always be 0 after derivative)
         coefficients[coefficients.length - 1] = 0;
 
-        // Construct the polynomial string
         StringBuilder sb = new StringBuilder();
         for (int i = coefficients.length - 1; i >= 0; i--) {
             double coefficient = coefficients[i];
@@ -107,5 +108,42 @@ public class PolynomialFunction implements ParametricFunction {
             }
         }
         polynomialFunction =  sb.toString();
+    }
+
+    public List<Double> getZeroPoints() {
+        return getZeroPoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
+    }
+
+    public List<Double> getExtremePoints() {
+        return getExtremePoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
+    }
+
+    public List<Double> getZeroPoints(double start, double end, double step) {
+        List<Double> zeros = new ArrayList<>();
+        Vector2D prevPoint = evaluate(start);
+        for (double x = start + step; x <= end; x += step) {
+            Vector2D point = evaluate(x);
+            if (prevPoint.y * point.y <= 0) {
+                zeros.add(x - step / 2);
+            }
+            prevPoint = point;
+        }
+        return zeros;
+    }
+
+    public List<Double> getExtremePoints(double start, double end, double step) {
+        List<Double> extremes = new ArrayList<>();
+        Vector2D startPoint = evaluate(start);
+        Vector2D nextPoint = evaluate(start + step);
+        double prevSlope = (nextPoint.y - startPoint.y) / step;
+        for (double x = start + 2 * step; x <= end; x += step) {
+            Vector2D point = evaluate(x);
+            double slope = (point.y - evaluate(x - step).y) / step;
+            if (prevSlope * slope <= 0) {
+                extremes.add(x - step);
+            }
+            prevSlope = slope;
+        }
+        return extremes;
     }
 }
