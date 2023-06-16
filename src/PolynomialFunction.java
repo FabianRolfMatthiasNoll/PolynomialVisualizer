@@ -5,50 +5,67 @@ import java.util.*;
 public class PolynomialFunction implements ParametricFunction {
 
     private double[] coefficients;
-    public String polynomialFunction;
+    public String functionString;
     private static final double DEFAULT_START_X = -100.0;
     private static final double DEFAULT_END_X = 100.0;
     private static final double DEFAULT_STEP = 0.01;
+    private static final Pattern TERM_PATTERN = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*(?:/\\d+)*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+(/\\d+)?)");
 
     public PolynomialFunction(String polynomialString) {
         this.coefficients = new double[]{0};
-        this.polynomialFunction = polynomialString;
+        this.functionString = polynomialString;
         fromString(polynomialString);
     }
 
     public void fromString(String polynomial) {
-        Pattern termPattern = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*(?:/\\d+)*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+(/\\d+)?)");
-        Matcher matcher = termPattern.matcher(polynomial);
+        if (polynomial == null || polynomial.isEmpty()) {
+            throw new IllegalArgumentException("Polynomial string cannot be null or empty");
+        }
+
+        Matcher matcher = TERM_PATTERN.matcher(polynomial);
 
         while (matcher.find()) {
-            String coefStr = matcher.group(1);
-            String expStr = matcher.group(3);
-            String constantStr = matcher.group(4);
+            String coefStr = removeWhitespace(matcher.group(1));
+            String expStr = removeWhitespace(matcher.group(3));
+            String constantStr = removeWhitespace(matcher.group(4));
 
             double coef;
             int exp;
 
-            if (constantStr != null && !constantStr.isEmpty()) {
-                coef = parseFraction(constantStr.trim());
+            if (!isEmpty(constantStr)) {
+                coef = parseFraction(constantStr);
                 exp = 0;
             } else {
-                coef = 1;
-                if (coefStr != null && !coefStr.isEmpty()) {
-                    if (coefStr.trim().equals("+") || coefStr.trim().equals("-")) {
-                        coef = coefStr.trim().equals("+") ? 1 : -1;
-                    } else {
-                        coef = parseFraction(coefStr.trim());
-                    }
+                coef = 1.0;
+                if (!isEmpty(coefStr)) {
+                    coef = parseFractionOrSign(coefStr);
                 }
-
-                exp = (expStr == null) ? 1 : Integer.parseInt(expStr);
+                exp = isEmpty(expStr) ? 1 : Integer.parseInt(expStr);
             }
 
-            if (exp >= this.coefficients.length) {
-                this.coefficients = Arrays.copyOf(this.coefficients, exp + 1);
-            }
-
+            extendCoefficientsArrayIfNeeded(exp);
             this.coefficients[exp] = coef;
+        }
+    }
+
+    private String removeWhitespace(String str) {
+        return str == null ? null : str.trim();
+    }
+
+    private boolean isEmpty(String str) {
+        return str == null || str.isEmpty();
+    }
+
+    private double parseFractionOrSign(String str) {
+        if (str.equals("+") || str.equals("-")) {
+            return str.equals("+") ? 1.0 : -1.0;
+        }
+        return parseFraction(str);
+    }
+
+    private void extendCoefficientsArrayIfNeeded(int exp) {
+        if (exp >= this.coefficients.length) {
+            this.coefficients = Arrays.copyOf(this.coefficients, exp + 1);
         }
     }
 
@@ -107,7 +124,7 @@ public class PolynomialFunction implements ParametricFunction {
                 }
             }
         }
-        polynomialFunction =  sb.toString();
+        functionString =  sb.toString();
     }
 
     public List<Double> getZeroPoints() {
@@ -145,5 +162,9 @@ public class PolynomialFunction implements ParametricFunction {
             prevSlope = slope;
         }
         return extremes;
+    }
+
+    public String getFunctionString() {
+        return functionString;
     }
 }

@@ -11,38 +11,32 @@ public class GraphPanel extends JPanel {
     private Vector2D offset = new Vector2D(0,0);
     private double scale = 50.0;
     private final Color backgroundColor = new Color(0.13f, 0.16f, 0.2f);
-    private Point lastMousePosition;
+    private Vector2D lastMousePosition = null;
     private JTextField functionField;
     public JButton resetButton;
-    //private ParametricFunction polynomial;
-    private PolynomialFunction polynomial;
+    private ParametricFunction polynomial;
+    // PolynomialFunction polynomial;
     private List<Double> zeroPoints;
     private List<Double> extremePoints;
-    private class ZoomListener extends MouseAdapter {
+    private class GraphMouseListener extends MouseAdapter {
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
             zoom -= e.getPreciseWheelRotation() * 0.1;
             if (zoom < 0.1) zoom = 0.1;
             repaint();
         }
-    }
 
-    private class PanListener extends MouseAdapter {
         @Override
         public void mousePressed(MouseEvent e) {
-            lastMousePosition = e.getPoint();
+            lastMousePosition = new Vector2D(e.getX(), e.getY());
         }
-    }
 
-    private class PanMotionListener extends MouseAdapter {
         @Override
         public void mouseDragged(MouseEvent e) {
-            Point currentMousePosition = e.getPoint();
-            double dx = (currentMousePosition.getX() - lastMousePosition.getX()) / scale;
-            double dy = (currentMousePosition.getY() - lastMousePosition.getY()) / scale;
-            double panningSpeedFactor = 1.2;
-            offset.x += dx * panningSpeedFactor;
-            offset.y -= dy * panningSpeedFactor;
+            Vector2D currentMousePosition = new Vector2D(e.getX(), e.getY());
+            Vector2D delta = lastMousePosition.delta(currentMousePosition);
+            offset.x += delta.x / scale;
+            offset.y -= delta.y / scale;
             lastMousePosition = currentMousePosition;
             repaint();
         }
@@ -77,7 +71,8 @@ public class GraphPanel extends JPanel {
     }
 
     public GraphPanel(String standardFunction) {
-        polynomial = new PolynomialFunction(standardFunction) {
+        // default parametric function to test functionality. Using the textfield it will become a polynomial
+        polynomial = new ParametricFunction() {
             @Override
             public Vector2D evaluate(double t) {
                 return new Vector2D(
@@ -85,6 +80,11 @@ public class GraphPanel extends JPanel {
                         13.0 * Math.cos(t) - 5.0 * Math.cos(2.0 * t) - 2.0 * Math.cos(3.0 * t) - Math.cos(4.0 * t)
                 );
             }
+
+            @Override
+            public void derive() {
+            }
+
             @Override
             public List<Double> getZeroPoints() {
                 zeroPoints = new ArrayList<>();
@@ -95,13 +95,19 @@ public class GraphPanel extends JPanel {
                 extremePoints = new ArrayList<>();
                 return extremePoints;
             }
+
+            @Override
+            public String getFunctionString() {
+                return standardFunction;
+            }
         };
         zeroPoints = polynomial.getZeroPoints();
         extremePoints = polynomial.getExtremePoints();
 
-        addMouseWheelListener(new ZoomListener());
-        addMouseListener(new PanListener());
-        addMouseMotionListener(new PanMotionListener());
+        GraphMouseListener graphMouseListener = new GraphMouseListener();
+        addMouseWheelListener(graphMouseListener);
+        addMouseListener(graphMouseListener);
+        addMouseMotionListener(graphMouseListener);
 
         createResetButton();
         createFunctionField();
@@ -175,12 +181,12 @@ public class GraphPanel extends JPanel {
     private void drawAxes(Graphics2D g2d, int width, int height, Vector2D zero) {
         g2d.setColor(Color.WHITE);
         g2d.setStroke(new BasicStroke(0.5f));
-        g2d.drawLine(0, (int)zero.y, width, (int)zero.y); // X axis
-        g2d.drawLine((int)zero.x, 0, (int)zero.x, height); // Y axis
+        g2d.drawLine(0, (int)zero.y, width, (int)zero.y);
+        g2d.drawLine((int)zero.x, 0, (int)zero.x, height);
     }
 
     private void drawGrid(Graphics2D g2d, int width, int height, double step) {
-        g2d.setColor(new Color(200, 200, 200, 40)); // Light grey color with transparency
+        g2d.setColor(new Color(200, 200, 200, 40));
 
         for (double x = step * Math.floor((-offset.x - width / (2.0 * scale)) / step); x <= -offset.x + width / (2.0 * scale); x += step) {
             Vector2D screenPoint = toScreenCoordinates(new Vector2D(x,0));
@@ -201,7 +207,7 @@ public class GraphPanel extends JPanel {
         double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
         double maxT = toWorldCoordinates(new Vector2D(width, 0)).x;
 
-        int numSteps = 1000;
+        int numSteps = 500;
 
         double tStep = (maxT - minT) / numSteps;
 
@@ -229,24 +235,20 @@ public class GraphPanel extends JPanel {
 
         for (double x = step * Math.floor((-offset.x - width / (2.0 * scale)) / step); x <= -offset.x + width / (2.0 * scale); x += step) {
             Vector2D screenPoint = toScreenCoordinates(new Vector2D(x,0));
-            int screenX = (int) screenPoint.x;
             Vector2D zeroPoint = toScreenCoordinates(new Vector2D(0,0));
-            int zeroY = (int) zeroPoint.y;
-            g2d.drawLine(screenX, zeroY - tickSize, screenX, zeroY + tickSize);
+            g2d.drawLine((int) screenPoint.x, (int) zeroPoint.y - tickSize, (int) screenPoint.x, (int) zeroPoint.y + tickSize);
             String label = String.format("%.2f", x);
             int textOffset = (x < 0) ? -2 - g2d.getFontMetrics().stringWidth(label) : 2;
-            g2d.drawString(label, screenX + textOffset, zeroY - 2);
+            g2d.drawString(label, (int) screenPoint.x + textOffset, (int) zeroPoint.y - 2);
         }
 
         for (double y = step * Math.floor((-offset.y - height / (2.0 * scale)) / step); y <= -offset.y + height / (2.0 * scale); y += step) {
             Vector2D screenPoint = toScreenCoordinates(new Vector2D(0,y));
-            int screenY = (int) screenPoint.y;
             Vector2D zeroPoint = toScreenCoordinates(new Vector2D(0,0));
-            int zeroX = (int) zeroPoint.x;
-            g2d.drawLine(zeroX - tickSize, screenY, zeroX + tickSize, screenY);
+            g2d.drawLine((int) zeroPoint.x - tickSize, (int) screenPoint.y, (int) zeroPoint.x + tickSize, (int) screenPoint.y);
             String label = String.format("%.2f", y);
             int textOffset = (y < 0) ? g2d.getFontMetrics().getAscent() + 2 : -2;
-            g2d.drawString(label, zeroX + 2, screenY + textOffset);
+            g2d.drawString(label, (int) zeroPoint.x + 2, (int) screenPoint.y + textOffset);
         }
     }
 
@@ -262,7 +264,7 @@ public class GraphPanel extends JPanel {
 
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-        String function = "Function: " + polynomial.polynomialFunction;
+        String function = "Function: " + polynomial.getFunctionString();
         String zeroPointsStr = "Zero Points: " + zeroPoints.stream().map(z -> String.format("%.2f", z)).collect(Collectors.joining(", "));
         String extremePointsStr = "Extreme Points: " + extremePoints.stream().map(e -> String.format("%.2f", e)).collect(Collectors.joining(", "));
         g2d.drawString(function, boxX + 10, boxY + 20);
