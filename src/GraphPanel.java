@@ -15,6 +15,9 @@ public class GraphPanel extends JPanel {
     private JTextField functionField;
     public JButton resetButton;
     private ParametricFunction polynomial;
+
+    public List<ParametricFunction> polynomials = new ArrayList<>();
+    private List<Color> colours = new ArrayList<>();
     // PolynomialFunction polynomial;
     private List<Double> zeroPoints;
     private List<Double> extremePoints;
@@ -47,6 +50,7 @@ public class GraphPanel extends JPanel {
         public void actionPerformed(ActionEvent e) {
             String function = functionField.getText();
             polynomial = new PolynomialFunction(function);
+            polynomials.add(new PolynomialFunction(function));
             zeroPoints = polynomial.getZeroPoints();
             extremePoints = polynomial.getExtremePoints();
             repaint();
@@ -72,35 +76,37 @@ public class GraphPanel extends JPanel {
 
     public GraphPanel(String standardFunction) {
         // default parametric function to test functionality. Using the textfield it will become a polynomial
-        polynomial = new ParametricFunction() {
-            @Override
-            public Vector2D evaluate(double t) {
-                return new Vector2D(
-                        16.0 * Math.pow(Math.sin(t), 3.0),
-                        13.0 * Math.cos(t) - 5.0 * Math.cos(2.0 * t) - 2.0 * Math.cos(3.0 * t) - Math.cos(4.0 * t)
-                );
-            }
-
-            @Override
-            public void derive() {
-            }
-
-            @Override
-            public List<Double> getZeroPoints() {
-                zeroPoints = new ArrayList<>();
-                return zeroPoints;
-            }
-            @Override
-            public List<Double> getExtremePoints() {
-                extremePoints = new ArrayList<>();
-                return extremePoints;
-            }
-
-            @Override
-            public String getFunctionString() {
-                return standardFunction;
-            }
-        };
+//        polynomial = new ParametricFunction() {
+//            @Override
+//            public Vector2D evaluate(double t) {
+//                return new Vector2D(
+//                        16.0 * Math.pow(Math.sin(t), 3.0),
+//                        13.0 * Math.cos(t) - 5.0 * Math.cos(2.0 * t) - 2.0 * Math.cos(3.0 * t) - Math.cos(4.0 * t)
+//                );
+//            }
+//
+//            @Override
+//            public void derive() {
+//            }
+//
+//            @Override
+//            public List<Double> getZeroPoints() {
+//                zeroPoints = new ArrayList<>();
+//                return zeroPoints;
+//            }
+//            @Override
+//            public List<Double> getExtremePoints() {
+//                extremePoints = new ArrayList<>();
+//                return extremePoints;
+//            }
+//
+//            @Override
+//            public String getFunctionString() {
+//                return standardFunction;
+//            }
+//        };
+        polynomial = new PolynomialFunction(standardFunction);
+        polynomials.add(new PolynomialFunction(standardFunction));
         zeroPoints = polynomial.getZeroPoints();
         extremePoints = polynomial.getExtremePoints();
 
@@ -153,7 +159,8 @@ public class GraphPanel extends JPanel {
 
         drawAxes(g2d, width, height, zero);
         drawGrid(g2d, width, height, step);
-        drawFunction(g2d, width);
+        //drawFunction(g2d, width);
+        drawFunctions(g2d,width);
         drawLabelsAndScales(g2d, width, height, step);
         drawInformationWindow(g2d);
     }
@@ -225,6 +232,42 @@ public class GraphPanel extends JPanel {
         g2d.setStroke(new BasicStroke(1.5f));
         g2d.setColor(Color.WHITE);
         g2d.draw(path);
+    }
+
+    private void drawFunctions(Graphics2D g2d, int width) {
+        GeneralPath path;
+
+        double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
+        double maxT = toWorldCoordinates(new Vector2D(width, 0)).x;
+
+        int numSteps = 500;
+
+        double tStep = (maxT - minT) / numSteps;
+
+        List<Color> colours = new ArrayList<>();
+        colours.add(Color.WHITE);
+        colours.add(Color.BLUE);
+        colours.add(Color.GREEN);
+        colours.add(Color.RED);
+        colours.add(Color.PINK);
+
+        for (int x = 0; x < polynomials.size(); x++) {
+            path = new GeneralPath();
+            double t = minT;
+
+            Vector2D initialPosition = toScreenCoordinates(polynomials.get(x).evaluate(t));
+            path.moveTo(initialPosition.x, initialPosition.y);
+
+            for (int i = 0; i < numSteps; i++) {
+                t += tStep;
+                Vector2D position = toScreenCoordinates(polynomials.get(x).evaluate(t));
+                path.lineTo(position.x, position.y);
+            }
+
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.setColor(colours.get(x % colours.size())); // Use modulo to cycle through colors if there are more polynomials than colors
+            g2d.draw(path);
+        }
     }
 
     private void drawLabelsAndScales(Graphics2D g2d, int width, int height, double step) {
