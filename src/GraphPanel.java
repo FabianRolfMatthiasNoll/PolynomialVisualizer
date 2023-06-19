@@ -31,6 +31,12 @@ public class GraphPanel extends JPanel {
         }
 
         @Override
+        public void mouseMoved(MouseEvent e){
+            lastMousePosition = new Vector2D(e.getX(), e.getY());
+            repaint();
+        }
+
+        @Override
         public void mouseDragged(MouseEvent e) {
             Vector2D currentMousePosition = new Vector2D(e.getX(), e.getY());
             Vector2D delta = lastMousePosition.delta(currentMousePosition);
@@ -142,6 +148,7 @@ public class GraphPanel extends JPanel {
         drawFunctions(g2d, width);
         drawLabelsAndScales(g2d, width, height, step);
         drawInformationWindows(g2d);
+        drawIntersections(g2d);
     }
 
     private void clearBackground(Graphics2D g2d, int width, int height) {
@@ -307,6 +314,66 @@ public class GraphPanel extends JPanel {
     public static void infoBox(String infoMessage, String titleBar)
     {
         JOptionPane.showMessageDialog(null, infoMessage, "InfoBox: " + titleBar, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void drawIntersections(Graphics2D g2d){
+        List<Vector2D> intersectionPoints = calculateIntersections();
+        g2d.setColor(Color.YELLOW);
+        Font font = new Font("Arial", Font.BOLD, 14);
+        g2d.setFont(font);
+        FontMetrics metrics = g2d.getFontMetrics(font);
+
+        for (Vector2D intersection : intersectionPoints) {
+            Vector2D screenPoint = toScreenCoordinates(intersection);
+            g2d.fillOval((int) screenPoint.x - 3, (int) screenPoint.y - 3, 6, 6);
+            if (screenPoint.distance(lastMousePosition) < 5) {
+
+                String text = String.format("(%.2f, %.2f)", intersection.x, intersection.y);
+                int x = (int) screenPoint.x + 5;
+                int y = (int) screenPoint.y - 5;
+
+                int textWidth = metrics.stringWidth(text);
+                int textHeight = metrics.getHeight();
+
+                g2d.setColor(new Color(0, 0, 0, 128));
+                g2d.fillRect(x - 2, y - textHeight, textWidth + 4, textHeight + 2);
+
+                g2d.setColor(Color.YELLOW);
+                g2d.drawString(text, x, y);
+
+                break;
+            }
+        }
+    }
+
+    private List<Vector2D> calculateIntersections() {
+        List<Vector2D> intersections = new ArrayList<>();
+
+        double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
+        double maxT = toWorldCoordinates(new Vector2D(getWidth(), 0)).x;
+        double step = 0.0001;
+        if (polynomials.size() < 2) {
+            return intersections;
+        }
+
+        for (double x = minT; x <= maxT; x += step) {
+            for (int i = 0; i < polynomials.size(); i++) {
+                for (int j = i + 1; j < polynomials.size(); j++) {
+                    double y1Prev = polynomials.get(i).evaluate(x - step).y;
+                    double y1Curr = polynomials.get(i).evaluate(x).y;
+                    double y2Prev = polynomials.get(j).evaluate(x - step).y;
+                    double y2Curr = polynomials.get(j).evaluate(x).y;
+
+                    if ((y1Prev - y2Prev) * (y1Curr - y2Curr) < 0) {
+                        double intersectX = x - step / 2;
+                        double intersectY = (y1Curr + y2Curr) / 2;
+                        intersections.add(new Vector2D(intersectX, intersectY));
+                    }
+                }
+            }
+        }
+
+        return intersections;
     }
 
 }
