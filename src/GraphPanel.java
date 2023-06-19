@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.GeneralPath;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,13 +15,8 @@ public class GraphPanel extends JPanel {
     private Vector2D lastMousePosition = null;
     private JTextField functionField;
     public JButton resetButton;
-    private ParametricFunction polynomial;
-
-    public List<ParametricFunction> polynomials = new ArrayList<>();
-    private List<Color> colours = new ArrayList<>();
-    // PolynomialFunction polynomial;
-    private List<Double> zeroPoints;
-    private List<Double> extremePoints;
+    private final List<ParametricFunction> polynomials = new ArrayList<>();
+    List<Color> colours = Arrays.asList(Color.WHITE, Color.BLUE, Color.GREEN, Color.RED, Color.PINK);
     private class GraphMouseListener extends MouseAdapter {
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
@@ -48,12 +44,16 @@ public class GraphPanel extends JPanel {
     private class CalculateActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            String function = functionField.getText();
-            polynomial = new PolynomialFunction(function);
-            polynomials.add(new PolynomialFunction(function));
-            zeroPoints = polynomial.getZeroPoints();
-            extremePoints = polynomial.getExtremePoints();
-            repaint();
+            if(polynomials.size() < 3){
+                String function = functionField.getText();
+                double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
+                double maxT = toWorldCoordinates(new Vector2D(getWidth(), 0)).x;
+                polynomials.add(new PolynomialFunction(function, minT, maxT));
+                repaint();
+            } else {
+                GraphPanel.infoBox("You reached the maximum amount of Graphs", "MAX_GRAPHS_REACHED");
+            }
+
         }
     }
 
@@ -69,46 +69,26 @@ public class GraphPanel extends JPanel {
     private class DeriveActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            polynomial.derive();
+            // will be reimplemented in the interface to the gui
+            //((PolynomialFunction)polynomial).derive();
             repaint();
         }
     }
 
-    public GraphPanel(String standardFunction) {
+    public GraphPanel() {
+        // Parametric function will be added through either a secondary instance of graph panel or reinitialitianio
         // default parametric function to test functionality. Using the textfield it will become a polynomial
-//        polynomial = new ParametricFunction() {
-//            @Override
-//            public Vector2D evaluate(double t) {
-//                return new Vector2D(
-//                        16.0 * Math.pow(Math.sin(t), 3.0),
-//                        13.0 * Math.cos(t) - 5.0 * Math.cos(2.0 * t) - 2.0 * Math.cos(3.0 * t) - Math.cos(4.0 * t)
-//                );
-//            }
-//
-//            @Override
-//            public void derive() {
-//            }
-//
-//            @Override
-//            public List<Double> getZeroPoints() {
-//                zeroPoints = new ArrayList<>();
-//                return zeroPoints;
-//            }
-//            @Override
-//            public List<Double> getExtremePoints() {
-//                extremePoints = new ArrayList<>();
-//                return extremePoints;
-//            }
-//
-//            @Override
-//            public String getFunctionString() {
-//                return standardFunction;
-//            }
-//        };
-        polynomial = new PolynomialFunction(standardFunction);
-        polynomials.add(new PolynomialFunction(standardFunction));
-        zeroPoints = polynomial.getZeroPoints();
-        extremePoints = polynomial.getExtremePoints();
+//        polynomial = t -> new Vector2D(
+//                16.0 * Math.pow(Math.sin(t), 3.0),
+//                13.0 * Math.cos(t) - 5.0 * Math.cos(2.0 * t) - 2.0 * Math.cos(3.0 * t) - Math.cos(4.0 * t)
+//        );
+
+//        if(polynomial instanceof PolynomialFunction){
+//            double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
+//            double maxT = toWorldCoordinates(new Vector2D(getWidth(), 0)).x;
+//            zeroPoints = ((PolynomialFunction)polynomial).getZeroPoints(minT, maxT, 0.01);
+//            extremePoints = ((PolynomialFunction)polynomial).getExtremePoints(minT, maxT, 0.01);
+//        }
 
         GraphMouseListener graphMouseListener = new GraphMouseListener();
         addMouseWheelListener(graphMouseListener);
@@ -159,10 +139,9 @@ public class GraphPanel extends JPanel {
 
         drawAxes(g2d, width, height, zero);
         drawGrid(g2d, width, height, step);
-        //drawFunction(g2d, width);
-        drawFunctions(g2d,width);
+        drawFunctions(g2d, width);
         drawLabelsAndScales(g2d, width, height, step);
-        drawInformationWindow(g2d);
+        drawInformationWindows(g2d);
     }
 
     private void clearBackground(Graphics2D g2d, int width, int height) {
@@ -208,48 +187,16 @@ public class GraphPanel extends JPanel {
         }
     }
 
-    private void drawFunction(Graphics2D g2d, int width) {
-        GeneralPath path = new GeneralPath();
-
-        double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
-        double maxT = toWorldCoordinates(new Vector2D(width, 0)).x;
-
-        int numSteps = 500;
-
-        double tStep = (maxT - minT) / numSteps;
-
-        double t = minT;
-
-        Vector2D initialPosition = toScreenCoordinates(polynomial.evaluate(t));
-        path.moveTo(initialPosition.x, initialPosition.y);
-
-        for (int i = 0; i < numSteps; i++) {
-            t += tStep;
-            Vector2D position = toScreenCoordinates(polynomial.evaluate(t));
-            path.lineTo(position.x, position.y);
-        }
-
-        g2d.setStroke(new BasicStroke(1.5f));
-        g2d.setColor(Color.WHITE);
-        g2d.draw(path);
-    }
-
     private void drawFunctions(Graphics2D g2d, int width) {
         GeneralPath path;
 
         double minT = toWorldCoordinates(new Vector2D(0, 0)).x;
         double maxT = toWorldCoordinates(new Vector2D(width, 0)).x;
 
-        int numSteps = 500;
+        int numSteps = (int) Math.max(5000, 10000 * zoom);
 
         double tStep = (maxT - minT) / numSteps;
 
-        List<Color> colours = new ArrayList<>();
-        colours.add(Color.WHITE);
-        colours.add(Color.BLUE);
-        colours.add(Color.GREEN);
-        colours.add(Color.RED);
-        colours.add(Color.PINK);
 
         for (int x = 0; x < polynomials.size(); x++) {
             path = new GeneralPath();
@@ -258,14 +205,22 @@ public class GraphPanel extends JPanel {
             Vector2D initialPosition = toScreenCoordinates(polynomials.get(x).evaluate(t));
             path.moveTo(initialPosition.x, initialPosition.y);
 
-            for (int i = 0; i < numSteps; i++) {
-                t += tStep;
-                Vector2D position = toScreenCoordinates(polynomials.get(x).evaluate(t));
-                path.lineTo(position.x, position.y);
+            for (int i = 0; i < numSteps; i += 3) {
+                double t1 = t + tStep;
+                double t2 = t1 + tStep;
+                double t3 = t2 + tStep;
+
+                Vector2D p1 = toScreenCoordinates(polynomials.get(x).evaluate(t1));
+                Vector2D p2 = toScreenCoordinates(polynomials.get(x).evaluate(t2));
+                Vector2D p3 = toScreenCoordinates(polynomials.get(x).evaluate(t3));
+
+                path.curveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+
+                t = t3;
             }
 
-            g2d.setStroke(new BasicStroke(1.5f));
-            g2d.setColor(colours.get(x % colours.size())); // Use modulo to cycle through colors if there are more polynomials than colors
+            g2d.setStroke(new BasicStroke(2.0f));
+            g2d.setColor(colours.get(x % colours.size()));
             g2d.draw(path);
         }
     }
@@ -295,24 +250,38 @@ public class GraphPanel extends JPanel {
         }
     }
 
-
-    private void drawInformationWindow(Graphics2D g2d) {
-        int boxX = getWidth() - 190;
+    private void drawInformationWindows(Graphics2D g2d) {
+        int boxWidth = (getWidth() - 40) / 3;
         int boxY = getHeight() - 90;
-        int boxWidth = 180;
         int boxHeight = 80;
+        Font font = new Font("Arial", Font.PLAIN, 12);
 
-        g2d.setColor(new Color(100, 100, 100, 200));
-        g2d.fillRect(boxX, boxY, boxWidth, boxHeight);
+        int index = 0;
+        for (Object function : polynomials) {
+            if (function instanceof PolynomialFunction polyFunction) {
+                int boxX = 10 + index * (boxWidth + 10);
 
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-        String function = "Function: " + polynomial.getFunctionString();
-        String zeroPointsStr = "Zero Points: " + zeroPoints.stream().map(z -> String.format("%.2f", z)).collect(Collectors.joining(", "));
-        String extremePointsStr = "Extreme Points: " + extremePoints.stream().map(e -> String.format("%.2f", e)).collect(Collectors.joining(", "));
-        g2d.drawString(function, boxX + 10, boxY + 20);
-        g2d.drawString(zeroPointsStr, boxX + 10, boxY + 40);
-        g2d.drawString(extremePointsStr, boxX + 10, boxY + 60);
+                g2d.setColor(new Color(100, 100, 100, 200));
+                g2d.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(font);
+
+                String functionString = "Function: " + polyFunction.getFunctionString();
+                String zeroPointsStr = "Roots: " + polyFunction.roots.stream()
+                        .map(z -> String.format("%.2f", z))
+                        .collect(Collectors.joining(", "));
+                String extremePointsStr = "Extreme Points: " + polyFunction.extremePoints.stream()
+                        .map(e -> String.format("%.2f", e))
+                        .collect(Collectors.joining(", "));
+
+                g2d.drawString(functionString, boxX + 10, boxY + 20);
+                g2d.drawString(zeroPointsStr, boxX + 10, boxY + 40);
+                g2d.drawString(extremePointsStr, boxX + 10, boxY + 60);
+
+                index++;
+            }
+        }
     }
 
     private Vector2D toScreenCoordinates(Vector2D position) {
@@ -333,6 +302,11 @@ public class GraphPanel extends JPanel {
         double y = (zeroY - position.y) / scale;
 
         return new Vector2D(x, y);
+    }
+
+    public static void infoBox(String infoMessage, String titleBar)
+    {
+        JOptionPane.showMessageDialog(null, infoMessage, "InfoBox: " + titleBar, JOptionPane.INFORMATION_MESSAGE);
     }
 
 }

@@ -3,18 +3,18 @@ import java.util.Arrays;
 import java.util.*;
 
 public class PolynomialFunction implements ParametricFunction {
-
-    private double[] coefficients;
     public String functionString;
-    private static final double DEFAULT_START_X = -100.0;
-    private static final double DEFAULT_END_X = 100.0;
-    private static final double DEFAULT_STEP = 0.01;
+    private double[] coefficients;
+    public List<Double> roots;
+    public List<Double> extremePoints;
     private static final Pattern TERM_PATTERN = Pattern.compile("([-+]?\\s*\\d*\\.?\\d*(?:/\\d+)*)?x(\\^(-?\\d+))?|([-+]?\\s*\\d+(/\\d+)?)");
 
-    public PolynomialFunction(String polynomialString) {
+    public PolynomialFunction(String polynomialString, double start, double end) {
         this.coefficients = new double[]{0};
         this.functionString = polynomialString;
         fromString(polynomialString);
+        calcRoots(start,end, 0.01);
+        calcExtremePoints(start,end, 0.01);
     }
 
     public void fromString(String polynomial) {
@@ -32,15 +32,15 @@ public class PolynomialFunction implements ParametricFunction {
             double coef;
             int exp;
 
-            if (!isEmpty(constantStr)) {
+            if (!isNullOrEmpty(constantStr)) {
                 coef = parseFraction(constantStr);
                 exp = 0;
             } else {
                 coef = 1.0;
-                if (!isEmpty(coefStr)) {
+                if (!isNullOrEmpty(coefStr)) {
                     coef = parseFractionOrSign(coefStr);
                 }
-                exp = isEmpty(expStr) ? 1 : Integer.parseInt(expStr);
+                exp = isNullOrEmpty(expStr) ? 1 : Integer.parseInt(expStr);
             }
 
             extendCoefficientsArrayIfNeeded(exp);
@@ -52,7 +52,7 @@ public class PolynomialFunction implements ParametricFunction {
         return str == null ? null : str.trim();
     }
 
-    private boolean isEmpty(String str) {
+    private boolean isNullOrEmpty(String str) {
         return str == null || str.isEmpty();
     }
 
@@ -85,7 +85,6 @@ public class PolynomialFunction implements ParametricFunction {
                 return i;
             }
         }
-
         return 0;
     }
 
@@ -127,29 +126,20 @@ public class PolynomialFunction implements ParametricFunction {
         functionString =  sb.toString();
     }
 
-    public List<Double> getZeroPoints() {
-        return getZeroPoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
-    }
-
-    public List<Double> getExtremePoints() {
-        return getExtremePoints(DEFAULT_START_X, DEFAULT_END_X, DEFAULT_STEP);
-    }
-
-    public List<Double> getZeroPoints(double start, double end, double step) {
-        List<Double> zeros = new ArrayList<>();
+    private void calcRoots(double start, double end, double step) {
+        roots = new ArrayList<>();
         Vector2D prevPoint = evaluate(start);
         for (double x = start + step; x <= end; x += step) {
             Vector2D point = evaluate(x);
             if (prevPoint.y * point.y <= 0) {
-                zeros.add(x - step / 2);
+                roots.add(x - step / 2);
             }
             prevPoint = point;
         }
-        return zeros;
     }
 
-    public List<Double> getExtremePoints(double start, double end, double step) {
-        List<Double> extremes = new ArrayList<>();
+    public void calcExtremePoints(double start, double end, double step) {
+        extremePoints = new ArrayList<>();
         Vector2D startPoint = evaluate(start);
         Vector2D nextPoint = evaluate(start + step);
         double prevSlope = (nextPoint.y - startPoint.y) / step;
@@ -157,11 +147,10 @@ public class PolynomialFunction implements ParametricFunction {
             Vector2D point = evaluate(x);
             double slope = (point.y - evaluate(x - step).y) / step;
             if (prevSlope * slope <= 0) {
-                extremes.add(x - step);
+                extremePoints.add(x - step);
             }
             prevSlope = slope;
         }
-        return extremes;
     }
 
     public String getFunctionString() {
