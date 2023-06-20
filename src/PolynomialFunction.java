@@ -13,8 +13,8 @@ public class PolynomialFunction implements ParametricFunction {
         this.coefficients = new double[]{0};
         this.functionString = polynomialString;
         fromString(polynomialString);
-        calcRoots(start,end, 0.01);
-        calcExtremePoints(start,end, 0.01);
+        calcRoots(start,end, 0.001);
+        calcExtremePoints(start,end, 0.001);
     }
 
     public void fromString(String polynomial) {
@@ -44,7 +44,7 @@ public class PolynomialFunction implements ParametricFunction {
             }
 
             extendCoefficientsArrayIfNeeded(exp);
-            this.coefficients[exp] = coef;
+            this.coefficients[exp] += coef;
         }
     }
 
@@ -57,8 +57,10 @@ public class PolynomialFunction implements ParametricFunction {
     }
 
     private double parseFractionOrSign(String str) {
-        if (str.equals("+") || str.equals("-")) {
-            return str.equals("+") ? 1.0 : -1.0;
+        if (str.equals("+")) {
+            return 1.0;
+        } else if (str.equals("-")) {
+            return -1.0;
         }
         return parseFraction(str);
     }
@@ -72,9 +74,17 @@ public class PolynomialFunction implements ParametricFunction {
     private double parseFraction(String input) {
         if (input.contains("/")) {
             String[] fractionParts = input.split("/");
-            return Double.parseDouble(fractionParts[0]) / Double.parseDouble(fractionParts[1]);
+            try {
+                return Double.parseDouble(fractionParts[0]) / Double.parseDouble(fractionParts[1]);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid fraction: " + input);
+            }
         } else {
-            return Double.parseDouble(input);
+            try {
+                return Double.parseDouble(input);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid number: " + input);
+            }
         }
     }
 
